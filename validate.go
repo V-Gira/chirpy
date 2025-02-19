@@ -1,53 +1,33 @@
 package main
 
 import (
-	"net/http"
-	"log"
 	"encoding/json"
+	"net/http"
 )
 
-func handlerValidate(w http.ResponseWriter, r *http.Request) {
+func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
+	}
+	type returnVals struct {
+		Valid bool `json:"valid"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		log.Printf("Error decoding parameters: %v\n", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		w.Write([]byte(`{"error": "Something went wrong"}`))
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
 
-	type returnVals struct {
-		valid bool `json:"valid"`
+	const maxChirpLength = 140
+	if len(params.Body) > maxChirpLength {
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
+		return
 	}
 
-	respBody := returnVals{
-		valid: len(params.Body) <= 140,
-	}
-
-	dat, err := json.Marshal(respBody)
-	if err != nil {
-		log.Printf("Error decoding parameters: %v\n", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		w.Write([]byte(`{"error": "Something went wrong"}`))
-		w.Write(dat)
-	}
-	status := 400
-	 if respBody.valid {
-		status = 200 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		w.Write([]byte(`{"valid": true}`))
-
-		} else {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(status)
-			w.Write([]byte(`{"error": "Chirp is too long"}`))
-		}
+	respondWithJSON(w, http.StatusOK, returnVals{
+		Valid: true,
+	})
 }
