@@ -64,6 +64,28 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 	})
 }
 
+func (cfg *apiConfig) handlerChirpsGetAll(w http.ResponseWriter, r *http.Request) {
+	chirps, err := cfg.db.GetAllChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get all chirps", err)
+		return
+	}
+
+    // Convert database models to API models
+	response := make([]Chirp, len(chirps))
+	for i, chirp := range chirps {
+		response[i] = Chirp{
+			ID:        chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      chirp.Body,
+			UserID:    chirp.UserID,
+		}
+	}
+
+	respondWithJSON(w, http.StatusOK, response)
+}
+
 func replaceProfanity(s string) string {
 	profanities := []string{"kerfuffle", "sharbert", "fornax"}
 	wordSplit := strings.Split(s, " ")
