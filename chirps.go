@@ -121,6 +121,51 @@ func (cfg *apiConfig) handlerChirpsGetOne(w http.ResponseWriter, r *http.Request
 	})
 }
 
+func (cfg *apiConfig) handlerChirpsDelete(w http.ResponseWriter, r *http.Request) {
+	pathParameter := r.PathValue("chirpsID")
+	chirpID, err := uuid.Parse(pathParameter)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid chirp ID", err)
+		return
+	}
+
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't get token", err)
+		return
+	}
+
+	tokenID, err := auth.ValidateJWT(token, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't validate token", err)
+		return
+	}
+
+	chirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Couldn't get chirp", err)
+		return
+	}
+
+	if chirp.UserID != tokenID {
+		respondWithError(w, http.StatusForbidden, "You can't delete someone else's chirp", nil)
+		return
+	}
+
+	chirpParams := database.DeleteChirpByIDParams{
+		ID: chirp.ID,
+		UserID: tokenID,
+	}
+
+	err = cfg.db.DeleteChirpByID(r.Context(), chirpParams)
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Couldn't delete chirp", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusNoContent, nil)
+}
+
 func replaceProfanity(s string) string {
 	profanities := []string{"kerfuffle", "sharbert", "fornax"}
 	wordSplit := strings.Split(s, " ")
