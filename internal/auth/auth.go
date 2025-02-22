@@ -7,6 +7,8 @@ import (
 	"time"
 	"errors"
 	"net/http"
+	"crypto/rand"
+	"encoding/hex"
 )
 
 func HashPassword(password string) (string, error) {
@@ -69,4 +71,14 @@ func GetBearerToken(header http.Header) (string, error) {
 		return "", errors.New("invalid Authorization header")
 	}
 	return authHeader[7:], nil
+}
+
+func MakeRefreshToken() (string, error) {
+	token := make([]byte, 32)
+	_, err := rand.Read(token)
+	if err != nil {
+		return "", err
+	}
+	tokenString := hex.EncodeToString(token)
+	return tokenString, nil
 }

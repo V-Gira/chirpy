@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"github.com/joho/godotenv"
 	"os"
+	"time"
 	"database/sql"
 	"github.com/V-Gira/chirpy/internal/database"
 	_ "github.com/lib/pq"
@@ -16,6 +17,7 @@ type apiConfig struct {
 	db      		*database.Queries
 	platform 		string
 	secret			string
+	timeout		time.Duration
 }
 
 func main() {
@@ -49,6 +51,8 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		db : queries,
 		platform: platform,
+		secret: JWTsecret,
+		timeout: time.Hour,
 	}
 
 	mux := http.NewServeMux()
@@ -59,6 +63,8 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerChirpsGetAll)
 	mux.HandleFunc("GET /api/chirps/{chirpsID}", apiCfg.handlerChirpsGetOne)
+	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
+	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRefreshRevoke)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
