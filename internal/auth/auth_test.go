@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 	"github.com/google/uuid"
+	"net/http"
 )
 
 func TestValidateJWT(t *testing.T) {
@@ -41,5 +42,26 @@ func TestValidateJWT(t *testing.T) {
 	_, err = ValidateJWT(expiredToken, tokenSecret)
 	if err == nil {
 		t.Error("Expected error for expired token, got none")
+	}
+}
+
+func TestGetBearerToken(t *testing.T) {
+	// Test valid token
+	tokenSecret := "secret"
+	userID := uuid.New()
+	expiresIn := time.Hour
+	token, err := MakeJWT(userID, tokenSecret, expiresIn)
+	if err != nil {
+		t.Fatalf("Failed to create token: %v", err)
+	}
+	bearerToken := http.Header{
+		"Authorization": []string{"Bearer " + token},
+	}
+	parsedToken, err := GetBearerToken(bearerToken)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if parsedToken != token {
+		t.Errorf("Expected token %v, got %v", token, parsedToken)
 	}
 }

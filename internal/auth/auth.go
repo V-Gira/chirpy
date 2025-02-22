@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"time"
 	"errors"
+	"net/http"
 )
 
 func HashPassword(password string) (string, error) {
@@ -57,4 +58,15 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 	return userID, nil
+}
+
+func GetBearerToken(header http.Header) (string, error) {
+	authHeader := header.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("missing Authorization")
+	}
+	if len(authHeader) < 7 || authHeader[:7] != "Bearer " {
+		return "", errors.New("invalid Authorization header")
+	}
+	return authHeader[7:], nil
 }

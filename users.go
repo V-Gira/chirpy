@@ -64,13 +64,18 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 
 func (cfg *apiConfig) handlerUsersLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Password string `json:"password"`
-		Email string `json:"email"`
+		Password 			string 	`json:"password"`
+		Email 				string 	`json:"email"`
+		ExpiresInSeconds	*int 	`json:"expires_in_seconds"`
 	}
 
 	type response struct {
 		User
+		Token string `json:"token"`
 	}
+
+	defaultTimeout := 60 * 60
+	timeout := defaultTimeout
 	
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
@@ -80,9 +85,19 @@ func (cfg *apiConfig) handlerUsersLogin(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	if params.ExpiresInSeconds != nil && *params.ExpiresInSeconds < defaultTimeout {
+		timeout = *params.ExpiresInSeconds
+	}
+
 	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
+		return
+	}
+
+	token, err := auth.MakeJWT(user.ID, cfg.secret, time.Duration(timeout) * time.Second)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create token", err)
 		return
 	}
 
@@ -99,6 +114,7 @@ func (cfg *apiConfig) handlerUsersLogin(w http.ResponseWriter, r *http.Request) 
 			UpdatedAt: user.UpdatedAt,
 			Email: user.Email,
 		},
+		Token: token,
 	})
 }
 

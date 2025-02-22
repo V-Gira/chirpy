@@ -15,6 +15,7 @@ type apiConfig struct {
 	fileserverHits 	atomic.Int32
 	db      		*database.Queries
 	platform 		string
+	secret			string
 }
 
 func main() {
@@ -26,6 +27,10 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
+	}
+	JWTsecret := os.Getenv("JWT_SECRET")
+	if JWTsecret == "" {
+		log.Fatal("JWT_SECRET must be set")
 	}
 
 	platform := os.Getenv("PLATFORM")

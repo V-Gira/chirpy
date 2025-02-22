@@ -7,6 +7,7 @@ import (
 	"time"
 	"github.com/google/uuid"
 	"github.com/V-Gira/chirpy/internal/database"
+	"github.com/V-Gira/chirpy/internal/auth"
 )
 
 type Chirp struct {
@@ -20,7 +21,6 @@ type Chirp struct {
 func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
 	}
 	type response struct {
 		Chirp
@@ -34,6 +34,18 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't get token", err)
+		return
+	}
+
+	tokenID, err := auth.ValidateJWT(token, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't validate token", err)
+		return
+	}
+
 	params.Body = replaceProfanity(params.Body)
 
 	const maxChirpLength = 140
@@ -44,7 +56,7 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 
 	chirpsParams := database.CreateChirpParams{
 		Body: params.Body,
-		UserID: params.UserID,
+		UserID: tokenID,
 	}
 
 	chirp, err := cfg.db.CreateChirp(r.Context(), chirpsParams)
