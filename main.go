@@ -18,6 +18,7 @@ type apiConfig struct {
 	platform 		string
 	secret			string
 	timeout		time.Duration
+	polkaKey		string
 }
 
 func main() {
@@ -45,6 +46,11 @@ func main() {
 		log.Fatalf("Error opening database: %v", err)
 	}
 
+	polkaKey := os.Getenv("POLKA_KEY")
+	if polkaKey == "" {
+		log.Fatal("POLKA_KEY must be set")
+	}
+
 	queries := database.New(db)
 
 	apiCfg := apiConfig{
@@ -53,6 +59,7 @@ func main() {
 		platform: platform,
 		secret: JWTsecret,
 		timeout: time.Hour,
+		polkaKey: polkaKey,
 	}
 
 	mux := http.NewServeMux()
@@ -67,6 +74,7 @@ func main() {
 	mux.HandleFunc("DELETE /api/chirps/{chirpsID}", apiCfg.handlerChirpsDelete)
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRefreshRevoke)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerPolkaWebhook)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
