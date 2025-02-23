@@ -11,8 +11,7 @@ RETURNING *;
 
 -- name: GetAllChirps :many
 SELECT * FROM chirps
-WHERE $1::uuid IS NULL OR user_id = $1
-ORDER BY created_at;
+WHERE ($1 = '00000000-0000-0000-0000-000000000000'::uuid) OR user_id = $1;
 
 -- name: GetChirpByID :one
 SELECT * FROM chirps

@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"sort"
 	"github.com/google/uuid"
 	"github.com/V-Gira/chirpy/internal/database"
 	"github.com/V-Gira/chirpy/internal/auth"
+	"log"
 )
 
 type Chirp struct {
@@ -77,10 +79,18 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 }
 
 func (cfg *apiConfig) handlerChirpsGetAll(w http.ResponseWriter, r *http.Request) {
-	queryParameter := r.URL.Query().Get("author_id")
+
+	sortQuery := r.URL.Query().Get("sort")
+	if sortQuery != "" && sortQuery != "asc" && sortQuery != "desc" {
+		respondWithError(w, http.StatusBadRequest, "Invalid sort parameter", nil)
+		return
+	}
+
+	authorQuery := r.URL.Query().Get("author_id")
 	authorID := uuid.UUID{}
-	if queryParameter != "" {
-		userID, err := uuid.Parse(queryParameter)
+
+	if authorQuery != "" {
+		userID, err := uuid.Parse(authorQuery)
 		if err != nil {
 			respondWithError(w, http.StatusBadRequest, "Invalid user ID", err)
 			return
@@ -105,6 +115,13 @@ func (cfg *apiConfig) handlerChirpsGetAll(w http.ResponseWriter, r *http.Request
 			UserID:    chirp.UserID,
 		}
 	}
+
+	sort.Slice(response, func(i, j int) bool {
+		if sortQuery == "desc" {
+			return response[i].CreatedAt.After(response[j].CreatedAt)
+		}
+		return response[i].CreatedAt.Before(response[j].CreatedAt)
+	})
 
 	respondWithJSON(w, http.StatusOK, response)
 }
