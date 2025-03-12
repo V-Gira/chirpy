@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/V-Gira/chirpy/internal/database"
 	"github.com/V-Gira/chirpy/internal/auth"
-	"log"
 )
 
 type Chirp struct {

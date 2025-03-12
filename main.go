@@ -23,9 +23,13 @@ type apiConfig struct {
 
 func main() {
 	const filepathRoot = "."
-	const port = "8080"
 
 	godotenv.Load()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("PORT must be set")
+	}
 
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
@@ -64,6 +68,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
+	mux.HandleFunc("/", apiCfg.handlerHome)
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerUsersLogin)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
